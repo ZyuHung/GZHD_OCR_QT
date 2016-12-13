@@ -22,6 +22,9 @@ FORMS    += mainwindow.ui
 QT += multimedia
 
 INCLUDEPATH += T:/opencv/build/include
+INCLUDEPATH += "T:\Tesseract-OCR\include"
+INCLUDEPATH += "T:\Tesseract-OCR\include\tesseract"
+INCLUDEPATH += "T:\Tesseract-OCR\include\leptonica"
 
 win32:CONFIG(debug, debug|release): {
 LIBS += -LT:/opencv/build/x86/vc12/lib \
@@ -36,6 +39,15 @@ LIBS += -LT:/opencv/build/x86/vc12/lib \
 -lopencv_contrib2410d \
 -lopencv_legacy2410d \
 -lopencv_flann2410d
+
+LIBS += -LT:/Tesseract-OCR/Lib \
+-lws2_32 \
+-luser32 \
+-ljpeg \
+-lliblept168 \
+-llibpng \
+-llibtesseract302
+
 } else:win32:CONFIG(release, debug|release): {
 LIBS += -LT:/opencv/build/x86/vc12/lib \
 -lopencv_core2410 \
@@ -49,6 +61,14 @@ LIBS += -LT:/opencv/build/x86/vc12/lib \
 -lopencv_contrib2410 \
 -lopencv_legacy2410 \
 -lopencv_flann2410
+
+LIBS += -LT:/Tesseract-OCR/Lib \
+-lws2_32 \
+-luser32 \
+-ljpeg \
+-lliblept168 \
+-llibpng \
+-llibtesseract302
 }
 
 RESOURCES += \
