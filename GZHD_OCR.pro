@@ -60,7 +60,8 @@ LIBS += -LT:/opencv/build/x86/vc12/lib \
 -lopencv_objdetect2410 \
 -lopencv_contrib2410 \
 -lopencv_legacy2410 \
--lopencv_flann2410
+-lopencv_flann2410 \
+-lopencv_nonfree2410
 
 LIBS += -LT:/Tesseract-OCR/Lib \
 -lws2_32 \
