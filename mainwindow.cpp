@@ -1,3 +1,21 @@
+/*****************************************************************************
+* Copyright (c) 2016 GZHU_EENB_LAB629 Corporation
+* All Rights Reserved.
+*
+* Project Name         :   Guangzhou Honda OCR
+* File Name            :   mainwindow.cpp
+* Abstract Description :   OCR for nameplate
+*
+* Create Date          :   2016/12/10
+* Author               :   Zhu Zhihong( Zyuhung ), Yao Xuwen( Uwen )
+* Address              :   Guangzhou University(HEMC)
+
+******************************************************************************/
+
+/*
+ * 此程序在detect nameplate的过程中偶尔出现bug
+ */
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
@@ -16,7 +34,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-float MainWindow::calScale(vector<Point2f> PatternPts ,vector<Point2f> DetectPts)
+float calScale(vector<Point2f> PatternPts ,vector<Point2f> DetectPts)
 {
     float PatternDistance=0.f;
     float DetectDistance=0.f;
@@ -47,7 +65,7 @@ float MainWindow::calScale(vector<Point2f> PatternPts ,vector<Point2f> DetectPts
 }
 
 //captureImage输入图像，ROI输出目标，size输出目标尺寸
-bool MainWindow::getDetectNameplate(const Mat captureImage, Mat& ROI, float& scale)
+bool MainWindow::GetDetectNameplate_b(const Mat captureImage, Mat& ROI, float& scale)
 {
     if (captureImage.empty())//检查输入图像是否为空
         return false;
@@ -289,6 +307,7 @@ bool MainWindow::getDetectNameplate(const Mat captureImage, Mat& ROI, float& sca
 
 void MainWindow::paintEvent(QPaintEvent *event)
 {
+    //Update the standard image.
    if (mStandard_M.data)
    {
        QImage image2;
@@ -305,6 +324,7 @@ void MainWindow::paintEvent(QPaintEvent *event)
        ui->mStandard_label->setPixmap(QPixmap::fromImage(image2));
        ui->mStandard_label->resize(ui->mStandard_label->pixmap()->size());
    }
+   //Update the camera image.
    if (mCamImage_M.data)
    {
        QImage cam;
@@ -325,11 +345,12 @@ void MainWindow::paintEvent(QPaintEvent *event)
 
 void MainWindow::UpdateImage_v()
 {
-    if (mIsGetDetect)
+    //如果已检测到nameplate则close camera并显示nameplate
+    if (mIsGetDetect_b)
     {
-        mCamImage_M=mDetecteROI;
+        mCamImage_M=mDetecteROI_M;
         mUpdatingTimer_qt.stop();
-        mIsGetDetect=false;
+        mIsGetDetect_b=false;
     }
     else
     {
@@ -338,35 +359,39 @@ void MainWindow::UpdateImage_v()
         mCapture_VC>>mCamImage_M;//get Image from camera（从摄像头视频流获取视频画面）
         ui->mTip_label->setText("Capturing...");
     }
+    //Update camera image
     if (mCamImage_M.data )
     {
-        if (!mIsGetDetect)
-            mIsGetDetect=getDetectNameplate(mCamImage_M,mDetecteROI,mScale_f);
+        if (!mIsGetDetect_b)
+            mIsGetDetect_b=GetDetectNameplate_b(mCamImage_M,mDetecteROI_M,mScale_f);
         if (mCamImage_M.channels()==3);
             cv::cvtColor(mCamImage_M,mCamImage_M,CV_BGR2RGB);
     }
     else
     {
+        //camera 丢失
         CloseCamera_v();
         ui->mTip_label->setText("Camera Lost");
     }
-    if (mIsGetDetect)
+    //如果检测到nameplate则进行尺寸变换并OCR
+    if (mIsGetDetect_b)
     {
-        cv::cvtColor(mDetecteROI,mDetecteROI,CV_BGR2RGB);
+        cv::cvtColor(mDetecteROI_M,mDetecteROI_M,CV_BGR2RGB);
         ui->mTip_label->setText("Captured success, OCRing...");
         cv::Mat ocrimg;
-        mDetecteROI.copyTo(ocrimg);
-        for (int i=0;i<mStandardRects_v.size();i++)
+        mDetecteROI_M.copyTo(ocrimg);
+        for (int i=0;i<mStandardRects_v_R.size();i++)
         {
-            Rect ROI(mStandardRects_v[i].x*mScale_f,mStandardRects_v[i].y*mScale_f,
-                     mStandardRects_v[i].width*mScale_f,mStandardRects_v[i].height*mScale_f);
-            rectangle(mDetecteROI, ROI,Scalar(0,0,255),2);
+            Rect ROI(mStandardRects_v_R[i].x*mScale_f,mStandardRects_v_R[i].y*mScale_f,
+                     mStandardRects_v_R[i].width*mScale_f,mStandardRects_v_R[i].height*mScale_f);
+            rectangle(mDetecteROI_M, ROI,Scalar(0,0,255),2);
             cv::imwrite("dst.jpg",ocrimg(ROI));
             STRING OutputText_dst;
             TBapi.ProcessPages("dst.jpg", NULL, 0, &OutputText_dst);
             string out=OutputText_dst.string();
             for (auto j=out.begin();j!=out.end();)
             {
+                //去空格、换行、制表符
                 switch (*j)
                 {
                 case '\n':
@@ -380,6 +405,7 @@ void MainWindow::UpdateImage_v()
                     break;
                 }
             }
+            //格子对应显示OCR结果（后期考虑如何联合所有linetext统一管理）
             switch (i)
             {
             case 0:
@@ -489,8 +515,8 @@ void MainWindow::UpdateImage_v()
             default:
                 break;
             }
-            ui->mOpenCamera_bt->setEnabled(true);      //set "OpenCamera" button disabled.
-            ui->mCloseCamera_bt->setEnabled(false);     //set "CloseCamera" button abled.
+            ui->mOpenCamera_bt->setEnabled(true);      //set "Start" button disabled.
+            ui->mCloseCamera_bt->setEnabled(false);     //set "STOP" button abled.
             ui->mTip_label->setText("Camera Close");
 
         }
@@ -500,13 +526,13 @@ void MainWindow::UpdateImage_v()
 
 void MainWindow::CloseCamera_v()
 {
-    mIsGetDetect=false;
+    mIsGetDetect_b=false;
 //    mCamImage_M.release();
-    mDetecteROI.release();
+    mDetecteROI_M.release();
     mUpdatingTimer_qt.stop();
     ui->mTip_label->setText("Camera Close");
-    ui->mOpenCamera_bt->setEnabled(true);      //set "OpenCamera" button disabled.
-    ui->mCloseCamera_bt->setEnabled(false);     //set "CloseCamera" button abled.
+    ui->mOpenCamera_bt->setEnabled(true);      //set "Start" button disabled.
+    ui->mCloseCamera_bt->setEnabled(false);     //set "STOP" button abled.
 }
 
 void MainWindow::mLoadStandard_v()
@@ -516,7 +542,8 @@ void MainWindow::mLoadStandard_v()
    {
        if (mStandard_M.channels()==3)
            cv::cvtColor(mStandard_M,mStandard_M,CV_BGR2RGB);
-       mStandardRects_v.clear();
+       mStandardRects_v_R.clear();
+       //保存一副原始图像待OCR
        mStandard_M.copyTo(mStandardOrigin_M);
        LineEdit_standard_ctrler(true);
        ui->mOpenCamera_bt->setEnabled(true);
@@ -534,7 +561,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     {
         mIsPress_b=true;
         ui->mTip_label->setText("Capturing...");
-        mStandardRects_v.resize(mStandardRects_v.size()+1);
+        mStandardRects_v_R.resize(mStandardRects_v_R.size()+1);
         mStandard_M.copyTo(mLastStd_M);
 
         mStartPoint_qp.setX(event->x()-ui->mStandard_label->x());
@@ -542,8 +569,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         mStartPoint_qp.setY(event->y()-ui->mStandard_label->y());
         mEndPoint_qp=mStartPoint_qp;
 
-        mStandardRects_v.back().x=mStartPoint_qp.x();
-        mStandardRects_v.back().y=mStartPoint_qp.y();
+        mStandardRects_v_R.back().x=mStartPoint_qp.x();
+        mStandardRects_v_R.back().y=mStartPoint_qp.y();
     }
 }
 
@@ -567,8 +594,8 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
 
         mLastStd_M.copyTo(mStandard_M);
 
-        mStandardRects_v.back().width=mEndPoint_qp.x()-mStartPoint_qp.x();
-        mStandardRects_v.back().height=mEndPoint_qp.y()-mStartPoint_qp.y();
+        mStandardRects_v_R.back().width=mEndPoint_qp.x()-mStartPoint_qp.x();
+        mStandardRects_v_R.back().height=mEndPoint_qp.y()-mStartPoint_qp.y();
 
         cv::rectangle(mStandard_M,cv::Point(mStartPoint_qp.x(),mStartPoint_qp.y()),
                       cv::Point(mEndPoint_qp.x(),mEndPoint_qp.y()),cv::Scalar(255,0,0),2);
@@ -580,20 +607,21 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
     if (mStandard_M.data && mIsPress_b)
     {
-        if (mStandardRects_v.back().width<0)
+        if (mStandardRects_v_R.back().width<0)
         {
-            mStandardRects_v.back().x=mEndPoint_qp.x();
-            mStandardRects_v.back().width=abs(mEndPoint_qp.x()-mStartPoint_qp.x());
+            mStandardRects_v_R.back().x=mEndPoint_qp.x();
+            mStandardRects_v_R.back().width=abs(mEndPoint_qp.x()-mStartPoint_qp.x());
         }
-        if (mStandardRects_v.back().height<0)
+        if (mStandardRects_v_R.back().height<0)
         {
-            mStandardRects_v.back().y=mEndPoint_qp.y();
-            mStandardRects_v.back().height=abs(mEndPoint_qp.y()-mStartPoint_qp.y());
+            mStandardRects_v_R.back().y=mEndPoint_qp.y();
+            mStandardRects_v_R.back().height=abs(mEndPoint_qp.y()-mStartPoint_qp.y());
         }
         mStandard_M.copyTo(mLastStd_M);
         ui->mTip_label->setText("OCRing...");
-        cv::Mat dst=mStandardOrigin_M(mStandardRects_v.back());
+        cv::Mat dst=mStandardOrigin_M(mStandardRects_v_R.back());
 
+        //放手则自动OCR
     TBapi.Init(NULL, "normal", tesseract::OEM_DEFAULT);
     TBapi.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
 
@@ -604,6 +632,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     string out=OutputText_dst.string();
     for (auto j=out.begin();j!=out.end();)
     {
+        //同理，去除回车、空格及制表符
         switch (*j)
         {
         case '\n':
@@ -617,7 +646,8 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             break;
         }
     }
-    switch(mStandardRects_v.size())
+    //后期请考虑如何改进统一管理lineEdit
+    switch(mStandardRects_v_R.size())
     {
     case 1:
         ui->lineEdit->setText(out.c_str());
@@ -688,6 +718,7 @@ void MainWindow::ShowCamera_v()
 
 void MainWindow::LineEdit_standard_ctrler(bool onoff)
 {
+    //统一管理lineEdit的暂行办法（粗暴）
     if (onoff)
     {
         ui->lineEdit->setEnabled(true);
@@ -722,10 +753,6 @@ void MainWindow::LineEdit_standard_ctrler(bool onoff)
     }
 }
 
-QString MainWindow::s2q(const string &s)
-{
-    return QString(QString::fromLocal8Bit(s.c_str()));
-}
 
 void MainWindow::on_mLoadStdimg_Button_clicked()
 {

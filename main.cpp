@@ -1,3 +1,15 @@
+/*****************************************************************************
+* Copyright (c) 2016 GZHU_EENB_LAB629 Corporation
+* All Rights Reserved.
+*
+* Project Name         :   Guangzhou Honda OCR
+* File Name            :   main.cpp
+*
+* Create Date          :   2016/12/10
+* Author               :   Zhu Zhihong( Zyuhung )
+* Address              :   Guangzhou University(HEMC)
+
+******************************************************************************/
 #include "mainwindow.h"
 #include <QApplication>
 

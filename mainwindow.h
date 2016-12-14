@@ -1,3 +1,16 @@
+/*****************************************************************************
+* Copyright (c) 2016 GZHU_EENB_LAB629 Corporation
+* All Rights Reserved.
+*
+* Project Name         :   Guangzhou Honda OCR
+* File Name            :   mainwindow.h
+*
+* Create Date          :   2016/12/10
+* Author               :   Zhu Zhihong( Zyuhung )
+* Address              :   Guangzhou University(HEMC)
+
+******************************************************************************/
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -43,10 +56,7 @@ public:
     void CloseCamera_v();
     void UpdateImage_v();
     void LineEdit_standard_ctrler(bool onoff);
-    float calScale(vector<Point2f> PatternPts ,vector<Point2f> DetectPts);
-    bool getDetectNameplate(const Mat captureImage, Mat& ROI, float &scale);
-
-//    std::string mUTF8ToGBK_s(const char* strUTF8);
+    bool GetDetectNameplate_b(const Mat captureImage, Mat& ROI, float &scale);
 
     explicit MainWindow(QWidget *parent = 0); 
     ~MainWindow();
@@ -62,13 +72,13 @@ private:
     const int CAM_NO=1;
     Ui::MainWindow *ui;
     bool mIsPress_b=false;
-    bool mIsGetDetect=false;
+    bool mIsGetDetect_b=false;
     float mScale_f=0.0;
-    std::vector<cv::Rect> mStandardRects_v;
+    std::vector<cv::Rect> mStandardRects_v_R;
     cv::VideoCapture mCapture_VC;
     cv::Mat mStandardOrigin_M,mStandard_M,mLastStd_M;
     cv::Mat mCamImage_M;
-    cv::Mat mDetecteROI;
+    cv::Mat mDetecteROI_M;
     QPoint mStartPoint_qp;
     QPoint mEndPoint_qp;
     QTimer mUpdatingTimer_qt;
