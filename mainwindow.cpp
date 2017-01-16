@@ -71,7 +71,7 @@ bool MainWindow::GetDetectNameplate_b(const Mat captureImage, Mat& ROI, float& s
         return false;
 
     //【1】载入图像、显示并转化为灰度图
-    Mat trainImage = imread("standard.jpg");
+    Mat trainImage = imread("D:\\Guangzhou Honda OCR_With UI\\GZHD_OCR\\standard.jpg");
     Mat trainImage_gray;
     //imshow("原始图", trainImage);
     //cvWaitKey(0);
@@ -338,9 +338,14 @@ void MainWindow::paintEvent(QPaintEvent *event)
            cam = QImage((const uchar*)(mCamImage_M.data),mCamImage_M.cols,mCamImage_M.rows,
                            mCamImage_M.cols*mCamImage_M.channels(),QImage::Format_Indexed8);
        }
-       ui->mCam_label->resize(mStandardOrigin_M.cols,mCamImage_M.rows/(mCamImage_M.cols/mStandardOrigin_M.cols));
-       ui->mCam_label->setPixmap(QPixmap::fromImage(cam));
        ui->mCam_label->setScaledContents(true);
+       qDebug()<<"232";
+       if (mCamImage_M.cols>mStandardOrigin_M.cols)
+           ui->mCam_label->resize(mStandardOrigin_M.cols,mCamImage_M.rows/((float)mCamImage_M.cols/mStandardOrigin_M.cols));
+       else
+           ui->mCam_label->resize(mCamImage_M.cols,mCamImage_M.rows);
+       ui->mCam_label->setPixmap(QPixmap::fromImage(cam));
+
    }
 }
 
@@ -538,7 +543,7 @@ void MainWindow::CloseCamera_v()
 
 void MainWindow::mLoadStandard_v()
 {
-   mStandard_M=cv::imread("..\\standard.jpg");
+   mStandard_M=cv::imread("D:\\Guangzhou Honda OCR_With UI\\GZHD_OCR\\standard.jpg");
    if (mStandard_M.data)
    {
        if (mStandard_M.channels()==3)

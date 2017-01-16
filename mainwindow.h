@@ -69,7 +69,7 @@ private slots:
 
 private:
     QString s2q(const string &s);
-    const int CAM_NO=1;
+    const int CAM_NO=0;
     Ui::MainWindow *ui;
     bool mIsPress_b=false;
     bool mIsGetDetect_b=false;
