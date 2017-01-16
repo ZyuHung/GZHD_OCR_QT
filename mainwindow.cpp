@@ -34,10 +34,10 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-float calScale(vector<Point2f> PatternPts ,vector<Point2f> DetectPts)
+float calScale(vector<Point2f> PatternPts, vector<Point2f> DetectPts)
 {
-    float PatternDistance=0.f;
-    float DetectDistance=0.f;
+    float PatternDistance = 0.f;
+    float DetectDistance = 0.f;
 
     int PatSize = PatternPts.size();
     int DetSize = DetectPts.size();
@@ -68,200 +68,88 @@ float calScale(vector<Point2f> PatternPts ,vector<Point2f> DetectPts)
 bool MainWindow::GetDetectNameplate_b(const Mat captureImage, Mat& ROI, float& scale)
 {
     if (captureImage.empty())//检查输入图像是否为空
-        return false;
+            return false;
 
-    //【1】载入图像、显示并转化为灰度图
-    Mat trainImage = imread("D:\\Guangzhou Honda OCR_With UI\\GZHD_OCR\\standard.jpg");
-    Mat trainImage_gray;
-    //imshow("原始图", trainImage);
-    //cvWaitKey(0);
-    cvtColor(trainImage, trainImage_gray, CV_BGR2GRAY);
-    int dd = trainImage_gray.cols;
-    //【2】检测SIFT关键点、提取训练图像描述符
-    vector<KeyPoint> train_keyPoint;
-    Mat trainDescription;
-    SiftFeatureDetector featureDetector;
-    featureDetector.detect(trainImage_gray, train_keyPoint);
-    SiftDescriptorExtractor featureExtractor;
-    featureExtractor.compute(trainImage_gray, train_keyPoint, trainDescription);
+        //【1】载入图像、显示并转化为灰度图
+        Mat trainImage = imread("D:\\Guangzhou Honda OCR_With UI\\GZHD_OCR\\standard.jpg");
+        Mat trainImage_gray;
+        //imshow("原始图", trainImage);
+        //cvWaitKey(0);
+        cvtColor(trainImage, trainImage_gray, CV_BGR2GRAY);
+        int dd = trainImage_gray.cols;
+        //【2】检测SIFT关键点、提取训练图像描述符
+        vector<KeyPoint> train_keyPoint;
+        Mat trainDescription;
+        SiftFeatureDetector featureDetector;
+        featureDetector.detect(trainImage_gray, train_keyPoint);
+        SiftDescriptorExtractor featureExtractor;
+        featureExtractor.compute(trainImage_gray, train_keyPoint, trainDescription);
 
-    // 【3】进行基于描述符的暴力匹配
-    BFMatcher matcher;
-    vector<Mat> train_desc_collection(1, trainDescription);
-    matcher.add(train_desc_collection);
-    matcher.train();
+        // 【3】进行基于描述符的暴力匹配
+        BFMatcher matcher;
+        vector<Mat> train_desc_collection(1, trainDescription);
+        matcher.add(train_desc_collection);
+        matcher.train();
 
-    //【4】创建视频对象、定义帧率
-    //VideoCapture cap(0);
-    //cap.set(CV_CAP_PROP_FRAME_WIDTH, 1980);
-    //cap.set(CV_CAP_PROP_FRAME_HEIGHT, 1080);
+        //【4】创建视频对象、定义帧率
+        //VideoCapture cap(0);
+        //cap.set(CV_CAP_PROP_FRAME_WIDTH, 1980);
+        //cap.set(CV_CAP_PROP_FRAME_HEIGHT, 1080);
 
-    //unsigned int frameCount = 0;//帧数
+        //unsigned int frameCount = 0;//帧数
 
-    Mat captureImage_gray;
-    //<2>转化图像到灰度
-    cvtColor(captureImage, captureImage_gray, CV_BGR2GRAY);
+        Mat captureImage_gray;
+        //<2>转化图像到灰度
+        cvtColor(captureImage, captureImage_gray, CV_BGR2GRAY);
 
-    //<3>检测SURF关键点、提取测试图像描述符
-    vector<KeyPoint> test_keyPoint;
-    Mat testDescriptor;
-    featureDetector.detect(captureImage_gray, test_keyPoint);
-    featureExtractor.compute(captureImage_gray, test_keyPoint, testDescriptor);
+        //<3>检测SURF关键点、提取测试图像描述符
+        vector<KeyPoint> test_keyPoint;
+        Mat testDescriptor;
+        featureDetector.detect(captureImage_gray, test_keyPoint);
+        featureExtractor.compute(captureImage_gray, test_keyPoint, testDescriptor);
 
-    vector<Point2f> patpoint;
+        vector<Point2f> patpoint;
 
-    //<4>匹配训练和测试描述符
-    vector<vector<DMatch> > matches;
-    matcher.knnMatch(testDescriptor, matches, 2);
+        //<4>匹配训练和测试描述符
+        vector<vector<DMatch> > matches;
+        matcher.knnMatch(testDescriptor, matches, 2);
 
 
-    // <5>根据劳氏算法（Lowe's algorithm），得到优秀的匹配点
-    vector<DMatch> goodMatches;
-    for (unsigned int i = 0; i < matches.size(); i++)
-    {
-        if (matches[i][0].distance < 0.6 * matches[i][1].distance)
+        // <5>根据劳氏算法（Lowe's algorithm），得到优秀的匹配点
+        vector<DMatch> goodMatches;
+        for (unsigned int i = 0; i < matches.size(); i++)
         {
-            goodMatches.push_back(matches[i][0]);
+            if (matches[i][0].distance < 0.6 * matches[i][1].distance)
+            {
+                goodMatches.push_back(matches[i][0]);
+            }
+
         }
 
-    }
 
 
-
-    if (goodMatches.size() > 30)
-    {
-        int  leftx = captureImage.cols;
-        //int  lefty = captureImage.rows;
-        int  centerPst = 0;
-        //int  righty = 0;
-        Point tempPoint;
-
-        int index = 0;
-        vector<Point2f> detpoint;
-
-        for (; index < goodMatches.size(); index++)
+        if (goodMatches.size() > 30)
         {
-            tempPoint = test_keyPoint[goodMatches[index].queryIdx].pt;
-            centerPst +=tempPoint.x;
-            //righty = max(righty, tempPoint.y);
-            //lefty = min(lefty, tempPoint.y);
-            detpoint.push_back(tempPoint);
-            patpoint.push_back(train_keyPoint[goodMatches[index].trainIdx].pt);
-        }
-
-//        Mat dstImage;
-//        drawMatches(captureImage, test_keyPoint, trainImage, train_keyPoint, matches, dstImage);
-//        imshow("匹配窗口", dstImage);
+            Point tempPoint;
 
 
-        int  location = centerPst/index;
-        qDebug()<<location<<endl<<captureImage.cols*0.39<<endl<<captureImage.cols*0.48;
-        qDebug()<<" !"<<captureImage.cols<<endl;
-        if (location>280&&location < 300)
-        {
+            vector<Point2f> detpoint;
+
+            for (int index = 0; index < goodMatches.size(); index++)
+            {
+                tempPoint = test_keyPoint[goodMatches[index].queryIdx].pt;
+                //righty = max(righty, tempPoint.y);
+                //lefty = min(lefty, tempPoint.y);
+                detpoint.push_back(tempPoint);
+                patpoint.push_back(train_keyPoint[goodMatches[index].trainIdx].pt);
+            }
+
+            Mat dstImage;
+            drawMatches(captureImage, test_keyPoint, trainImage, train_keyPoint, matches, dstImage);
+//            imshow("匹配窗口", dstImage);
+
             scale = calScale(patpoint, detpoint);
-            //RotatedRect rr = minAreaRect(detpoint);
-            //Point2f fourPoint2f[4];
-            //rr.points(fourPoint2f);
 
-            //int m[4];
-            //int x[4], y[4];
-            //for (int i = 0; i < 4; i++)
-            //{
-            //	//m.insert(pair<Point, int>(point[i], i));
-            //	x[i] = fourPoint2f[i].x;
-            //	y[i] = fourPoint2f[i].y;
-            //}
-
-            //int themin = INT_MAX, thesecmin = INT_MAX;
-            //int order = 0, secorder = 0;
-            //for (int i = 0; i < 4; i++)
-            //{
-            //	if (x[i]<themin)
-            //	{
-            //		themin = x[i];
-            //		order = i;
-            //	}
-            //}
-            //x[order] = INT_MAX;
-            //for (int i = 0; i < 4; i++)
-            //{
-            //	if (x[i]<thesecmin)
-            //	{
-            //		thesecmin = x[i];
-            //		secorder = i;
-            //	}
-            //}
-
-            //if (fourPoint2f[order].y < fourPoint2f[secorder].y)
-            //{
-            //	m[0] = order;
-            //	m[3] = secorder;
-            //}
-            //else
-            //{
-            //	m[0] = secorder;
-            //	m[3] = order;
-            //}
-
-            //int th[2];
-            //int c = 0;
-            //for (int i = 0; i < 4; i++)
-            //{
-            //	if (i != secorder&&i != order)
-            //	{
-            //		th[c] = i;
-            //		c++;
-            //	}
-            //}
-
-            //if (fourPoint2f[th[0]].y < fourPoint2f[th[1]].y)
-            //{
-            //	m[1] = th[0];
-            //	m[2] = th[1];
-            //}
-            //else
-            //{
-            //	m[1] = th[1];
-            //	m[2] = th[0];
-            //}
-            //Size size(abs(fourPoint2f[m[0]].x - fourPoint2f[m[1]].x), abs(fourPoint2f[m[0]].y - fourPoint2f[m[3]].y));
-            //printf("%d %d", size.width, size.height);
-            /////!!!!!!!!!!!!!!!!!!!!修改此参数可改变其框住目标范围！！！！！！！！！////////////////
-            //float offset = abs(fourPoint2f[m[0]].x - fourPoint2f[m[1]].x)*0.04;
-
-            //fourPoint2f[m[0]].x = max(fourPoint2f[m[0]].x - offset, 0.f);
-            //fourPoint2f[m[0]].y = max(fourPoint2f[m[0]].y - offset, 0.f);
-
-            //fourPoint2f[m[1]].x = min(fourPoint2f[m[1]].x + offset, (float)captureImage.cols);
-            //fourPoint2f[m[1]].y = min(fourPoint2f[m[1]].y - offset, (float)captureImage.rows);
-
-            //fourPoint2f[m[2]].x = min(fourPoint2f[m[2]].x + offset, (float)captureImage.cols);
-            //fourPoint2f[m[2]].y = min(fourPoint2f[m[2]].y + offset, (float)captureImage.rows);
-
-            //fourPoint2f[m[3]].x = max(fourPoint2f[m[3]].x - offset, 0.f);
-            //fourPoint2f[m[3]].y = max(fourPoint2f[m[3]].y + offset, 0.f);
-
-            //Mat im_dst = Mat::zeros(size, CV_8UC3);
-
-            //vector<Point2f> pts_dst;
-
-            //pts_dst.push_back(Point2f(0, 0));
-            //pts_dst.push_back(Point2f(size.width - 1, 0));
-            //pts_dst.push_back(Point2f(size.width - 1, size.height - 1));
-            //pts_dst.push_back(Point2f(0, size.height - 1));
-
-            //vector<Point2f> rightOrder_point;
-            //for (int i = 0; i < 4; i++)
-            //{
-            //	rightOrder_point.push_back(fourPoint2f[m[i]]);
-            //}
-
-            //Mat h = findHomography(rightOrder_point, pts_dst);
-            //warpPerspective(captureImage, im_dst, h, size);
-
-            //ROI = im_dst;
-            //return true;
             Mat H = findHomography(patpoint, detpoint, CV_RANSAC);
             std::vector<Point2f> obj_corners(4);
             obj_corners[0] = Point(0, 0);
@@ -273,10 +161,11 @@ bool MainWindow::GetDetectNameplate_b(const Mat captureImage, Mat& ROI, float& s
 
             float x = abs(scene_corners[1].x - scene_corners[0].x);
             float y = abs(scene_corners[3].y - scene_corners[0].y);
-            Size size(x,y);
-            //float Scale = (float)(x / y);
-            //printf("%f\n", Scale);
+            Size size(x, y);
 
+            int  location = (scene_corners[1].x + scene_corners[0].x) / 2;
+            if (location > captureImage.cols*0.35&&location < captureImage.cols*0.65)
+            {
                 Mat im_dst = Mat::zeros(size, CV_8UC3);
 
                 vector<Point2f> pts_dst;
@@ -297,13 +186,12 @@ bool MainWindow::GetDetectNameplate_b(const Mat captureImage, Mat& ROI, float& s
 
                 ROI = im_dst;
                 return true;
+            }
 
 
         }
-
+        return false;
     }
-    return false;
-}
 
 void MainWindow::paintEvent(QPaintEvent *event)
 {
