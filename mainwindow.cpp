@@ -338,8 +338,9 @@ void MainWindow::paintEvent(QPaintEvent *event)
            cam = QImage((const uchar*)(mCamImage_M.data),mCamImage_M.cols,mCamImage_M.rows,
                            mCamImage_M.cols*mCamImage_M.channels(),QImage::Format_Indexed8);
        }
+       ui->mCam_label->resize(mStandardOrigin_M.cols,mCamImage_M.rows/(mCamImage_M.cols/mStandardOrigin_M.cols));
        ui->mCam_label->setPixmap(QPixmap::fromImage(cam));
-       ui->mCam_label->resize(ui->mCam_label->pixmap()->size());
+       ui->mCam_label->setScaledContents(true);
    }
 }
 
